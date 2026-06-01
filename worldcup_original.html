@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>⚽ 2026 월드컵 일정</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Malgun Gothic', sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; }
+
+  header { background: #010409; padding: 16px; text-align: center; border-bottom: 1px solid #21262d; position: sticky; top: 0; z-index: 100; }
+  header h1 { font-size: 17px; color: #58a6ff; margin-bottom: 2px; }
+  header p  { font-size: 11px; color: #8b949e; }
+
+  .toolbar { display: flex; gap: 6px; padding: 10px 10px 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .toolbar::-webkit-scrollbar { display: none; }
+  .chip { background: #161b22; border: 1px solid #30363d; border-radius: 20px; padding: 5px 12px; font-size: 12px; color: #8b949e; white-space: nowrap; cursor: pointer; flex-shrink: 0; }
+  .chip.active { background: #1f6feb; border-color: #1f6feb; color: white; }
+
+  .date-header { background: #161b22; padding: 8px 12px; font-size: 12px; font-weight: bold; color: #58a6ff; border-left: 3px solid #58a6ff; margin: 8px 10px 4px; border-radius: 0 6px 6px 0; }
+  .date-header.knockout { border-left-color: #f0883e; color: #f0883e; }
+
+  .list { padding: 0 10px 100px; }
+
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 12px 14px; margin-bottom: 6px; }
+  .card.past  { opacity: 0.5; }
+  .card.live  { border-color: #ff6b6b; opacity: 1 !important; }
+  .card.hidden { display: none; }
+
+  .card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .teams { font-size: 15px; font-weight: bold; flex: 1; }
+
+  .time-badge { text-align: right; flex-shrink: 0; }
+  .time-big { font-size: 16px; font-weight: bold; color: #3fb950; font-family: monospace; }
+  .date-small { font-size: 10px; color: #8b949e; }
+
+  .score-box { text-align: center; padding: 4px 10px; border-radius: 6px; flex-shrink: 0; }
+  .score-box.ft { background: #1c2a1c; }
+  .score-box.live-score { background: #2a1c1c; animation: pulse 1.5s infinite; }
+  .score-num { font-size: 18px; font-weight: bold; color: #e6edf3; font-family: monospace; letter-spacing: 2px; }
+  .score-label { font-size: 9px; color: #8b949e; margin-top: 1px; }
+  .score-label.live-label { color: #ff6b6b; font-weight: bold; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+  .card-bottom { display: flex; align-items: center; gap: 6px; margin-top: 7px; flex-wrap: wrap; }
+  .badge { border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: bold; }
+  .badge.group   { background: #1f3a5f; color: #58a6ff; }
+  .badge.ko      { background: #4a1a00; color: #f0883e; }
+  .venue { font-size: 10px; color: #8b949e; }
+
+  .group-table { margin: 4px 0 8px; border-radius: 8px; overflow: hidden; border: 1px solid #30363d; font-size: 11px; }
+  .group-table table { width: 100%; border-collapse: collapse; }
+  .group-table th { background: #0d1117; padding: 5px 8px; color: #8b949e; text-align: left; font-weight: normal; }
+  .group-table td { padding: 5px 8px; border-top: 1px solid #21262d; }
+  .group-table tr.advance td { background: #0f1e10; }
+  .group-table .rank { color: #8b949e; width: 16px; }
+  .group-table .pts  { font-weight: bold; color: #3fb950; }
+  .group-table .pending { color: #484f58; font-style: italic; font-size: 10px; padding: 6px 8px; }
+  .countdown { font-size: 11px; color: #00d2ff; font-family: monospace; margin-left: auto; }
+  .countdown.soon { color: #ff6b6b; font-weight: bold; }
+  .countdown.done { color: #484f58; }
+
+  .statusbar { position: fixed; bottom: 0; left: 0; right: 0; background: #010409; border-top: 1px solid #21262d; padding: 10px 14px; display: flex; justify-content: space-between; font-size: 12px; color: #8b949e; }
+  #clock { font-family: monospace; color: #3fb950; }
+  #sync-status { font-size: 10px; color: #484f58; }
+
+  .korea-tag { font-size: 10px; background: #1a237e; color: #79b8ff; border-radius: 4px; padding: 1px 5px; }
+
+  .refresh-btn { background: #21262d; border: 1px solid #30363d; border-radius: 6px; padding: 3px 8px; font-size: 10px; color: #58a6ff; cursor: pointer; margin-left: 6px; }
+  .refresh-btn:active { background: #30363d; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚽ 2026 FIFA 월드컵</h1>
+  <p>전체 104경기 · KST 기준 <button class="refresh-btn" onclick="fetchScores(true)">🔄 새로고침</button></p>
+</header>
+
+<div class="toolbar" id="filters">
+  <div class="chip active" onclick="filter('', this)">전체</div>
+  <div class="chip" onclick="filter('upcoming', this)">예정 경기</div>
+  <div class="chip" onclick="filter('그룹A', this)">A조</div>
+  <div class="chip" onclick="filter('그룹B', this)">B조</div>
+  <div class="chip" onclick="filter('그룹C', this)">C조</div>
+  <div class="chip" onclick="filter('그룹D', this)">D조</div>
+  <div class="chip" onclick="filter('그룹E', this)">E조</div>
+  <div class="chip" onclick="filter('그룹F', this)">F조</div>
+  <div class="chip" onclick="filter('그룹G', this)">G조</div>
+  <div class="chip" onclick="filter('그룹H', this)">H조</div>
+  <div class="chip" onclick="filter('그룹I', this)">I조</div>
+  <div class="chip" onclick="filter('그룹J', this)">J조</div>
+  <div class="chip" onclick="filter('그룹K', this)">K조</div>
+  <div class="chip" onclick="filter('그룹L', this)">L조</div>
+  <div class="chip" onclick="filter('32강', this)">32강</div>
+  <div class="chip" onclick="filter('16강', this)">16강</div>
+  <div class="chip" onclick="filter('8강', this)">8강</div>
+  <div class="chip" onclick="filter('4강', this)">4강</div>
+  <div class="chip" onclick="filter('결승', this)">결승</div>
+</div>
+
+<div class="list" id="list"></div>
+
+<div class="statusbar">
+  <span>2026 FIFA 월드컵</span>
+  <span id="sync-status">--</span>
+  <span id="clock">--:--:--</span>
+</div>
+
+<script>
+const M = [
+  {id:1,  d:"2026-06-12",t:"04:00",home:"멕시코",       away:"남아공",        g:"그룹A",v:"멕시코시티",     k:false},
+  {id:2,  d:"2026-06-12",t:"11:00",home:"🇰🇷 한국",    away:"체코",          g:"그룹A",v:"과달라하라",     k:true},
+  {id:3,  d:"2026-06-13",t:"04:00",home:"캐나다",        away:"보스니아",      g:"그룹B",v:"토론토",         k:false},
+  {id:4,  d:"2026-06-13",t:"10:00",home:"미국",          away:"파라과이",      g:"그룹D",v:"로스앤젤레스",   k:false},
+  {id:5,  d:"2026-06-14",t:"04:00",home:"카타르",        away:"스위스",        g:"그룹B",v:"SF베이에어리어", k:false},
+  {id:6,  d:"2026-06-14",t:"07:00",home:"브라질",        away:"모로코",        g:"그룹C",v:"뉴욕",           k:false},
+  {id:7,  d:"2026-06-14",t:"10:00",home:"아이티",        away:"스코틀랜드",    g:"그룹C",v:"보스턴",         k:false},
+  {id:8,  d:"2026-06-14",t:"13:00",home:"호주",          away:"터키",          g:"그룹D",v:"밴쿠버",         k:false},
+  {id:9,  d:"2026-06-15",t:"02:00",home:"독일",          away:"퀴라소",        g:"그룹E",v:"휴스턴",         k:false},
+  {id:10, d:"2026-06-15",t:"05:00",home:"네덜란드",      away:"일본",          g:"그룹F",v:"댈러스",         k:false},
+  {id:11, d:"2026-06-15",t:"08:00",home:"코트디부아르",  away:"에콰도르",      g:"그룹E",v:"필라델피아",     k:false},
+  {id:12, d:"2026-06-15",t:"11:00",home:"스웨덴",        away:"튀니지",        g:"그룹F",v:"몬테레이",       k:false},
+  {id:13, d:"2026-06-16",t:"01:00",home:"스페인",        away:"카보베르데",    g:"그룹H",v:"애틀랜타",       k:false},
+  {id:14, d:"2026-06-16",t:"04:00",home:"벨기에",        away:"이집트",        g:"그룹G",v:"시애틀",         k:false},
+  {id:15, d:"2026-06-16",t:"07:00",home:"사우디",        away:"우루과이",      g:"그룹H",v:"마이애미",       k:false},
+  {id:16, d:"2026-06-16",t:"10:00",home:"이란",          away:"뉴질랜드",      g:"그룹G",v:"로스앤젤레스",   k:false},
+  {id:17, d:"2026-06-17",t:"04:00",home:"프랑스",        away:"세네갈",        g:"그룹I",v:"뉴욕",           k:false},
+  {id:18, d:"2026-06-17",t:"07:00",home:"이라크",        away:"노르웨이",      g:"그룹I",v:"보스턴",         k:false},
+  {id:19, d:"2026-06-17",t:"10:00",home:"아르헨티나",    away:"알제리",        g:"그룹J",v:"캔자스시티",     k:false},
+  {id:20, d:"2026-06-17",t:"13:00",home:"오스트리아",    away:"요르단",        g:"그룹J",v:"SF베이에어리어", k:false},
+  {id:21, d:"2026-06-18",t:"02:00",home:"포르투갈",      away:"DR콩고",        g:"그룹K",v:"휴스턴",         k:false},
+  {id:22, d:"2026-06-18",t:"05:00",home:"잉글랜드",      away:"크로아티아",    g:"그룹L",v:"댈러스",         k:false},
+  {id:23, d:"2026-06-18",t:"08:00",home:"가나",          away:"파나마",        g:"그룹L",v:"토론토",         k:false},
+  {id:24, d:"2026-06-18",t:"11:00",home:"우즈베키스탄",  away:"콜롬비아",      g:"그룹K",v:"멕시코시티",     k:false},
+  {id:25, d:"2026-06-19",t:"01:00",home:"체코",          away:"남아공",        g:"그룹A",v:"애틀랜타",       k:false},
+  {id:26, d:"2026-06-19",t:"04:00",home:"스위스",        away:"보스니아",      g:"그룹B",v:"로스앤젤레스",   k:false},
+  {id:27, d:"2026-06-19",t:"07:00",home:"캐나다",        away:"카타르",        g:"그룹B",v:"밴쿠버",         k:false},
+  {id:28, d:"2026-06-19",t:"10:00",home:"멕시코",        away:"🇰🇷 한국",     g:"그룹A",v:"과달라하라",     k:true},
+  {id:29, d:"2026-06-20",t:"04:00",home:"미국",          away:"호주",          g:"그룹D",v:"시애틀",         k:false},
+  {id:30, d:"2026-06-20",t:"07:00",home:"스코틀랜드",    away:"모로코",        g:"그룹C",v:"보스턴",         k:false},
+  {id:31, d:"2026-06-20",t:"09:30",home:"브라질",        away:"아이티",        g:"그룹C",v:"필라델피아",     k:false},
+  {id:32, d:"2026-06-20",t:"12:00",home:"터키",          away:"파라과이",      g:"그룹D",v:"SF베이에어리어", k:false},
+  {id:33, d:"2026-06-21",t:"02:00",home:"네덜란드",      away:"스웨덴",        g:"그룹F",v:"휴스턴",         k:false},
+  {id:34, d:"2026-06-21",t:"05:00",home:"독일",          away:"코트디부아르",  g:"그룹E",v:"토론토",         k:false},
+  {id:35, d:"2026-06-21",t:"09:00",home:"에콰도르",      away:"퀴라소",        g:"그룹E",v:"캔자스시티",     k:false},
+  {id:36, d:"2026-06-21",t:"13:00",home:"튀니지",        away:"일본",          g:"그룹F",v:"몬테레이",       k:false},
+  {id:37, d:"2026-06-22",t:"01:00",home:"스페인",        away:"사우디",        g:"그룹H",v:"애틀랜타",       k:false},
+  {id:38, d:"2026-06-22",t:"04:00",home:"벨기에",        away:"이란",          g:"그룹G",v:"로스앤젤레스",   k:false},
+  {id:39, d:"2026-06-22",t:"07:00",home:"우루과이",      away:"카보베르데",    g:"그룹H",v:"마이애미",       k:false},
+  {id:40, d:"2026-06-22",t:"10:00",home:"뉴질랜드",      away:"이집트",        g:"그룹G",v:"밴쿠버",         k:false},
+  {id:41, d:"2026-06-23",t:"02:00",home:"아르헨티나",    away:"오스트리아",    g:"그룹J",v:"댈러스",         k:false},
+  {id:42, d:"2026-06-23",t:"06:00",home:"프랑스",        away:"이라크",        g:"그룹I",v:"필라델피아",     k:false},
+  {id:43, d:"2026-06-23",t:"09:00",home:"노르웨이",      away:"세네갈",        g:"그룹I",v:"뉴욕",           k:false},
+  {id:44, d:"2026-06-23",t:"12:00",home:"요르단",        away:"알제리",        g:"그룹J",v:"SF베이에어리어", k:false},
+  {id:45, d:"2026-06-24",t:"02:00",home:"포르투갈",      away:"우즈베키스탄",  g:"그룹K",v:"휴스턴",         k:false},
+  {id:46, d:"2026-06-24",t:"05:00",home:"잉글랜드",      away:"가나",          g:"그룹L",v:"보스턴",         k:false},
+  {id:47, d:"2026-06-24",t:"08:00",home:"파나마",        away:"크로아티아",    g:"그룹L",v:"토론토",         k:false},
+  {id:48, d:"2026-06-24",t:"11:00",home:"콜롬비아",      away:"DR콩고",        g:"그룹K",v:"과달라하라",     k:false},
+  {id:49, d:"2026-06-25",t:"04:00",home:"스위스",        away:"캐나다",        g:"그룹B",v:"밴쿠버",         k:false},
+  {id:50, d:"2026-06-25",t:"04:00",home:"보스니아",      away:"카타르",        g:"그룹B",v:"시애틀",         k:false},
+  {id:51, d:"2026-06-25",t:"07:00",home:"스코틀랜드",    away:"브라질",        g:"그룹C",v:"마이애미",       k:false},
+  {id:52, d:"2026-06-25",t:"07:00",home:"모로코",        away:"아이티",        g:"그룹C",v:"애틀랜타",       k:false},
+  {id:53, d:"2026-06-25",t:"10:00",home:"체코",          away:"멕시코",        g:"그룹A",v:"멕시코시티",     k:false},
+  {id:54, d:"2026-06-25",t:"10:00",home:"남아공",        away:"🇰🇷 한국",     g:"그룹A",v:"몬테레이",       k:true},
+  {id:55, d:"2026-06-26",t:"05:00",home:"퀴라소",        away:"코트디부아르",  g:"그룹E",v:"필라델피아",     k:false},
+  {id:56, d:"2026-06-26",t:"05:00",home:"에콰도르",      away:"독일",          g:"그룹E",v:"뉴욕",           k:false},
+  {id:57, d:"2026-06-26",t:"08:00",home:"일본",          away:"스웨덴",        g:"그룹F",v:"댈러스",         k:false},
+  {id:58, d:"2026-06-26",t:"08:00",home:"튀니지",        away:"네덜란드",      g:"그룹F",v:"캔자스시티",     k:false},
+  {id:59, d:"2026-06-26",t:"11:00",home:"터키",          away:"미국",          g:"그룹D",v:"로스앤젤레스",   k:false},
+  {id:60, d:"2026-06-26",t:"11:00",home:"파라과이",      away:"호주",          g:"그룹D",v:"SF베이에어리어", k:false},
+  {id:61, d:"2026-06-27",t:"04:00",home:"노르웨이",      away:"프랑스",        g:"그룹I",v:"보스턴",         k:false},
+  {id:62, d:"2026-06-27",t:"04:00",home:"세네갈",        away:"이라크",        g:"그룹I",v:"토론토",         k:false},
+  {id:63, d:"2026-06-27",t:"09:00",home:"카보베르데",    away:"사우디",        g:"그룹H",v:"휴스턴",         k:false},
+  {id:64, d:"2026-06-27",t:"09:00",home:"우루과이",      away:"스페인",        g:"그룹H",v:"과달라하라",     k:false},
+  {id:65, d:"2026-06-27",t:"12:00",home:"이집트",        away:"이란",          g:"그룹G",v:"시애틀",         k:false},
+  {id:66, d:"2026-06-27",t:"12:00",home:"뉴질랜드",      away:"벨기에",        g:"그룹G",v:"밴쿠버",         k:false},
+  {id:67, d:"2026-06-28",t:"06:00",home:"파나마",        away:"잉글랜드",      g:"그룹L",v:"뉴욕",           k:false},
+  {id:68, d:"2026-06-28",t:"06:00",home:"크로아티아",    away:"가나",          g:"그룹L",v:"필라델피아",     k:false},
+  {id:69, d:"2026-06-28",t:"08:30",home:"콜롬비아",      away:"포르투갈",      g:"그룹K",v:"마이애미",       k:false},
+  {id:70, d:"2026-06-28",t:"08:30",home:"DR콩고",        away:"우즈베키스탄",  g:"그룹K",v:"애틀랜타",       k:false},
+  {id:71, d:"2026-06-28",t:"11:00",home:"알제리",        away:"오스트리아",    g:"그룹J",v:"캔자스시티",     k:false},
+  {id:72, d:"2026-06-28",t:"11:00",home:"요르단",        away:"아르헨티나",    g:"그룹J",v:"댈러스",         k:false},
+  {id:73, d:"2026-06-29",t:"04:00",home:"A조 2위",       away:"B조 2위",       g:"32강", v:"로스앤젤레스",   k:false},
+  {id:74, d:"2026-06-30",t:"05:30",home:"E조 1위",       away:"3위팀",         g:"32강", v:"보스턴",         k:false},
+  {id:75, d:"2026-06-30",t:"10:00",home:"F조 1위",       away:"C조 2위",       g:"32강", v:"몬테레이",       k:false},
+  {id:76, d:"2026-06-30",t:"02:00",home:"C조 1위",       away:"F조 2위",       g:"32강", v:"휴스턴",         k:false},
+  {id:77, d:"2026-07-01",t:"06:00",home:"I조 1위",       away:"3위팀",         g:"32강", v:"뉴욕",           k:false},
+  {id:78, d:"2026-07-01",t:"02:00",home:"E조 2위",       away:"I조 2위",       g:"32강", v:"댈러스",         k:false},
+  {id:79, d:"2026-07-01",t:"10:00",home:"A조 1위",       away:"3위팀",         g:"32강", v:"멕시코시티",     k:false},
+  {id:80, d:"2026-07-02",t:"01:00",home:"L조 1위",       away:"3위팀",         g:"32강", v:"애틀랜타",       k:false},
+  {id:81, d:"2026-07-02",t:"09:00",home:"D조 1위",       away:"3위팀",         g:"32강", v:"SF베이에어리어", k:false},
+  {id:82, d:"2026-07-02",t:"05:00",home:"G조 1위",       away:"3위팀",         g:"32강", v:"시애틀",         k:false},
+  {id:83, d:"2026-07-03",t:"08:00",home:"K조 2위",       away:"L조 2위",       g:"32강", v:"토론토",         k:false},
+  {id:84, d:"2026-07-03",t:"04:00",home:"H조 1위",       away:"J조 2위",       g:"32강", v:"로스앤젤레스",   k:false},
+  {id:85, d:"2026-07-03",t:"12:00",home:"B조 1위",       away:"3위팀",         g:"32강", v:"밴쿠버",         k:false},
+  {id:86, d:"2026-07-04",t:"07:00",home:"J조 1위",       away:"H조 2위",       g:"32강", v:"마이애미",       k:false},
+  {id:87, d:"2026-07-04",t:"10:30",home:"K조 1위",       away:"3위팀",         g:"32강", v:"캔자스시티",     k:false},
+  {id:88, d:"2026-07-04",t:"03:00",home:"D조 2위",       away:"G조 2위",       g:"32강", v:"댈러스",         k:false},
+  {id:89, d:"2026-07-05",t:"06:00",home:"M74 승자",      away:"M77 승자",      g:"16강", v:"필라델피아",     k:false},
+  {id:90, d:"2026-07-05",t:"02:00",home:"M73 승자",      away:"M75 승자",      g:"16강", v:"휴스턴",         k:false},
+  {id:91, d:"2026-07-06",t:"05:00",home:"M76 승자",      away:"M78 승자",      g:"16강", v:"뉴욕",           k:false},
+  {id:92, d:"2026-07-06",t:"09:00",home:"M79 승자",      away:"M80 승자",      g:"16강", v:"멕시코시티",     k:false},
+  {id:93, d:"2026-07-07",t:"04:00",home:"M83 승자",      away:"M84 승자",      g:"16강", v:"댈러스",         k:false},
+  {id:94, d:"2026-07-07",t:"09:00",home:"M81 승자",      away:"M82 승자",      g:"16강", v:"시애틀",         k:false},
+  {id:95, d:"2026-07-08",t:"01:00",home:"M86 승자",      away:"M88 승자",      g:"16강", v:"애틀랜타",       k:false},
+  {id:96, d:"2026-07-08",t:"05:00",home:"M85 승자",      away:"M87 승자",      g:"16강", v:"밴쿠버",         k:false},
+  {id:97, d:"2026-07-10",t:"05:00",home:"M89 승자",      away:"M90 승자",      g:"8강",  v:"보스턴",         k:false},
+  {id:98, d:"2026-07-11",t:"04:00",home:"M93 승자",      away:"M94 승자",      g:"8강",  v:"로스앤젤레스",   k:false},
+  {id:99, d:"2026-07-12",t:"06:00",home:"M91 승자",      away:"M92 승자",      g:"8강",  v:"마이애미",       k:false},
+  {id:100,d:"2026-07-12",t:"10:00",home:"M95 승자",      away:"M96 승자",      g:"8강",  v:"캔자스시티",     k:false},
+  {id:101,d:"2026-07-15",t:"04:00",home:"M97 승자",      away:"M98 승자",      g:"4강",  v:"댈러스",         k:false},
+  {id:102,d:"2026-07-16",t:"04:00",home:"M99 승자",      away:"M100 승자",     g:"4강",  v:"애틀랜타",       k:false},
+  {id:103,d:"2026-07-19",t:"06:00",home:"3위결정전",     away:"",              g:"결승", v:"마이애미",       k:false},
+  {id:104,d:"2026-07-20",t:"04:00",home:"🏆 결승전",     away:"",              g:"결승", v:"뉴욕",           k:false},
+];
+
+// ESPN 팀명 → 한국어 매핑
+const TEAM_MAP = {
+  'Mexico': '멕시코',
+  'South Africa': '남아공',
+  'South Korea': '🇰🇷 한국',
+  'Korea Republic': '🇰🇷 한국',
+  'Czech Republic': '체코',
+  'Czechia': '체코',
+  'Canada': '캐나다',
+  'Bosnia and Herzegovina': '보스니아',
+  'United States': '미국',
+  'Paraguay': '파라과이',
+  'Qatar': '카타르',
+  'Switzerland': '스위스',
+  'Brazil': '브라질',
+  'Morocco': '모로코',
+  'Haiti': '아이티',
+  'Scotland': '스코틀랜드',
+  'Australia': '호주',
+  'Turkey': '터키',
+  'Türkiye': '터키',
+  'Germany': '독일',
+  'Curaçao': '퀴라소',
+  'Curacao': '퀴라소',
+  'Netherlands': '네덜란드',
+  'Japan': '일본',
+  "Côte d'Ivoire": '코트디부아르',
+  'Ivory Coast': '코트디부아르',
+  'Ecuador': '에콰도르',
+  'Sweden': '스웨덴',
+  'Tunisia': '튀니지',
+  'Spain': '스페인',
+  'Cabo Verde': '카보베르데',
+  'Cape Verde': '카보베르데',
+  'Belgium': '벨기에',
+  'Egypt': '이집트',
+  'Saudi Arabia': '사우디',
+  'Uruguay': '우루과이',
+  'Iran': '이란',
+  'New Zealand': '뉴질랜드',
+  'France': '프랑스',
+  'Senegal': '세네갈',
+  'Iraq': '이라크',
+  'Norway': '노르웨이',
+  'Argentina': '아르헨티나',
+  'Algeria': '알제리',
+  'Austria': '오스트리아',
+  'Jordan': '요르단',
+  'Portugal': '포르투갈',
+  'DR Congo': 'DR콩고',
+  'Congo DR': 'DR콩고',
+  'Democratic Republic of Congo': 'DR콩고',
+  'England': '잉글랜드',
+  'Croatia': '크로아티아',
+  'Ghana': '가나',
+  'Panama': '파나마',
+  'Uzbekistan': '우즈베키스탄',
+  'Colombia': '콜롬비아',
+};
+
+const KO = ["32강","16강","8강","4강","결승"];
+let curFilter = "";
+
+function parseKST(d, t) {
+  const p = d.split("-"), q = t.split(":");
+  return new Date(Date.UTC(+p[0], +p[1]-1, +p[2], +q[0]-9, +q[1]));
+}
+
+// ─── ESPN API 점수 가져오기 ───────────────────────────────
+async function fetchScores(manual) {
+  const now = new Date();
+  // 대회 기간 아닐 때는 스킵 (6월 11일 ~ 7월 21일)
+  const start = new Date('2026-06-11T00:00:00');
+  const end   = new Date('2026-07-21T23:59:59');
+  if (now < start || now > end) {
+    setSyncStatus('대회 시작 전');
+    return;
+  }
+
+  setSyncStatus('불러오는 중...');
+
+  // 오늘 ± 1일 날짜만 조회 (성능 최적화)
+  const dates = new Set();
+  for (let offset = -1; offset <= 1; offset++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + offset);
+    dates.add(d.toISOString().slice(0,10).replace(/-/g,''));
+  }
+  // 수동 새로고침이면 전체 날짜 조회
+  if (manual) {
+    M.forEach(function(m) { dates.add(m.d.replace(/-/g,'')); });
+  }
+
+  let updated = 0;
+  for (const dateStr of dates) {
+    try {
+      const url = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=' + dateStr;
+      const resp = await fetch(url);
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      if (!data.events) continue;
+
+      data.events.forEach(function(event) {
+        const comp = event.competitions[0];
+        const competitors = comp.competitors;
+        if (!competitors || competitors.length < 2) return;
+
+        const home = competitors.find(function(c){ return c.homeAway === 'home'; }) || competitors[0];
+        const away = competitors.find(function(c){ return c.homeAway === 'away'; }) || competitors[1];
+
+        const homeKor = TEAM_MAP[home.team.displayName] || TEAM_MAP[home.team.name] || home.team.displayName;
+        const awayKor = TEAM_MAP[away.team.displayName] || TEAM_MAP[away.team.name] || away.team.displayName;
+
+        const eventDate = event.date ? event.date.slice(0,10).replace(/-/g,'') : dateStr;
+
+        // 매칭: 같은 날짜 + 두 팀 중 하나가 일치
+        const match = M.find(function(m) {
+          if (m.d.replace(/-/g,'') !== eventDate) return false;
+          const mHome = m.home.replace('🇰🇷 ','');
+          const mAway = m.away.replace('🇰🇷 ','');
+          return (mHome === homeKor && mAway === awayKor) ||
+                 (mHome === awayKor && mAway === homeKor);
+        });
+        if (!match) return;
+
+        const status = comp.status;
+        const state  = status.type.state;   // 'pre' | 'in' | 'post'
+        const detail = status.type.shortDetail || '';
+
+        if (state === 'post' || state === 'in') {
+          // 점수 순서 맞추기 (홈/어웨이 방향)
+          const mHome = match.home.replace('🇰🇷 ','');
+          let hs = home.score || '0', as = away.score || '0';
+          if (mHome !== homeKor) { const tmp = hs; hs = as; as = tmp; } // 방향 반전
+          match.score = hs + ' - ' + as;
+          match.winner = null;
+          if (state === 'post') {
+            match.statusLabel = 'FT';
+            // 승자 저장
+            const homeWin = +hs > +as;
+            const awayWin = +as > +hs;
+            if (homeWin) match.winner = match.home;
+            else if (awayWin) match.winner = match.away;
+            else match.winner = null; // 무승부
+          } else {
+            match.statusLabel = detail || 'LIVE';
+          }
+          updated++;
+        }
+      });
+    } catch(e) {
+      console.warn('ESPN fetch error:', dateStr, e);
+    }
+  }
+
+  // 토너먼트 승자 → 다음 라운드 업데이트
+  propagateWinners();
+
+  render();
+  const t = new Date();
+  setSyncStatus('업데이트: ' + t.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}));
+}
+
+// 그룹 스테이지 결과 → 32강 슬롯 자동 채우기
+function propagateWinners() {
+  // 그룹별 포인트 집계
+  const groups = {};
+  ['A','B','C','D','E','F','G','H','I','J','K','L'].forEach(function(g) { groups[g] = {}; });
+
+  M.forEach(function(m) {
+    if (!m.g.startsWith('그룹')) return;
+    if (!m.score) return;
+    const grp = m.g.replace('그룹','');
+    if (!groups[grp]) return;
+    const [hs, as] = m.score.split(' - ').map(Number);
+    const h = m.home.replace('🇰🇷 ','');
+    const a = m.away.replace('🇰🇷 ','');
+    if (!groups[grp][h]) groups[grp][h] = {pts:0, gd:0, gf:0};
+    if (!groups[grp][a]) groups[grp][a] = {pts:0, gd:0, gf:0};
+    if (hs > as) { groups[grp][h].pts += 3; }
+    else if (hs < as) { groups[grp][a].pts += 3; }
+    else { groups[grp][h].pts += 1; groups[grp][a].pts += 1; }
+    groups[grp][h].gd += hs - as; groups[grp][h].gf += hs;
+    groups[grp][a].gd += as - hs; groups[grp][a].gf += as;
+  });
+
+  // 조별 순위 계산
+  const rank = {};
+  Object.keys(groups).forEach(function(g) {
+    const teams = Object.entries(groups[g]).sort(function(a,b){
+      if (b[1].pts !== a[1].pts) return b[1].pts - a[1].pts;
+      if (b[1].gd  !== a[1].gd)  return b[1].gd  - a[1].gd;
+      return b[1].gf - a[1].gf;
+    });
+    rank[g] = teams.map(function(t){ return t[0]; });
+  });
+
+  // 32강 슬롯 텍스트 교체 (원래 값 보존용 fallback 포함)
+  function setSlot(matchId, field, grp, pos) {
+    const m = M.find(function(x){ return x.id === matchId; });
+    if (!m) return;
+    const teams = rank[grp];
+    if (!teams || teams.length < pos) return;
+    m[field] = teams[pos-1];
+  }
+
+  // id:73 A조2위 vs B조2위
+  setSlot(73, 'home', 'A', 2); setSlot(73, 'away', 'B', 2);
+  setSlot(74, 'home', 'E', 1);
+  setSlot(75, 'home', 'F', 1); setSlot(75, 'away', 'C', 2);
+  setSlot(76, 'home', 'C', 1); setSlot(76, 'away', 'F', 2);
+  setSlot(78, 'home', 'E', 2); setSlot(78, 'away', 'I', 2);
+  setSlot(79, 'home', 'A', 1);
+  setSlot(80, 'home', 'L', 1);
+  setSlot(81, 'home', 'D', 1);
+  setSlot(82, 'home', 'G', 1);
+  setSlot(83, 'home', 'K', 2); setSlot(83, 'away', 'L', 2);
+  setSlot(84, 'home', 'H', 1); setSlot(84, 'away', 'J', 2);
+  setSlot(85, 'home', 'B', 1);
+  setSlot(86, 'home', 'J', 1); setSlot(86, 'away', 'H', 2);
+  setSlot(87, 'home', 'K', 1);
+  setSlot(88, 'home', 'D', 2); setSlot(88, 'away', 'G', 2);
+
+  // 토너먼트 승자 전파 (32강 → 16강 → 8강 → 4강 → 결승)
+  function applyWinner(srcId, field, destMatchId, destField) {
+    const src = M.find(function(x){ return x.id === srcId; });
+    const dst = M.find(function(x){ return x.id === destMatchId; });
+    if (!src || !dst || !src.winner) return;
+    dst[destField] = src.winner;
+  }
+
+  // 16강
+  applyWinner(74,'winner',89,'home'); applyWinner(77,'winner',89,'away');
+  applyWinner(73,'winner',90,'home'); applyWinner(75,'winner',90,'away');
+  applyWinner(76,'winner',91,'home'); applyWinner(78,'winner',91,'away');
+  applyWinner(79,'winner',92,'home'); applyWinner(80,'winner',92,'away');
+  applyWinner(83,'winner',93,'home'); applyWinner(84,'winner',93,'away');
+  applyWinner(81,'winner',94,'home'); applyWinner(82,'winner',94,'away');
+  applyWinner(86,'winner',95,'home'); applyWinner(88,'winner',95,'away');
+  applyWinner(85,'winner',96,'home'); applyWinner(87,'winner',96,'away');
+  // 8강
+  applyWinner(89,'winner',97,'home'); applyWinner(90,'winner',97,'away');
+  applyWinner(93,'winner',98,'home'); applyWinner(94,'winner',98,'away');
+  applyWinner(91,'winner',99,'home'); applyWinner(92,'winner',99,'away');
+  applyWinner(95,'winner',100,'home');applyWinner(96,'winner',100,'away');
+  // 4강
+  applyWinner(97,'winner',101,'home');applyWinner(98,'winner',101,'away');
+  applyWinner(99,'winner',102,'home');applyWinner(100,'winner',102,'away');
+  // 결승
+  applyWinner(101,'winner',104,'home');applyWinner(102,'winner',104,'away');
+}
+
+// ─── 조 순위표 ────────────────────────────────────────────
+function buildGroupTable(grp) {
+  const matches = M.filter(function(m){ return m.g === grp && m.score; });
+  if (matches.length === 0) {
+    return '<div class="group-table"><div class="pending">경기 결과 집계 중...</div></div>';
+  }
+  const teams = {};
+  matches.forEach(function(m) {
+    const h = m.home.replace('🇰🇷 ','');
+    const a = m.away.replace('🇰🇷 ','');
+    if (!teams[h]) teams[h] = {pts:0,w:0,d:0,l:0,gf:0,ga:0};
+    if (!teams[a]) teams[a] = {pts:0,w:0,d:0,l:0,gf:0,ga:0};
+    const parts = m.score.split(' - ');
+    const hs = parseInt(parts[0]), as = parseInt(parts[1]);
+    teams[h].gf+=hs; teams[h].ga+=as;
+    teams[a].gf+=as; teams[a].ga+=hs;
+    if (hs>as) { teams[h].pts+=3; teams[h].w++; teams[a].l++; }
+    else if (hs<as) { teams[a].pts+=3; teams[a].w++; teams[h].l++; }
+    else { teams[h].pts+=1; teams[a].pts+=1; teams[h].d++; teams[a].d++; }
+  });
+  const sorted = Object.entries(teams).sort(function(a,b){
+    if (b[1].pts!==a[1].pts) return b[1].pts-a[1].pts;
+    const gdA=a[1].gf-a[1].ga, gdB=b[1].gf-b[1].ga;
+    if (gdB!==gdA) return gdB-gdA;
+    return b[1].gf-a[1].gf;
+  });
+  let html = '<div class="group-table"><table><tr><th>#</th><th>팀</th><th>승</th><th>무</th><th>패</th><th>득실</th><th class="pts">점</th></tr>';
+  sorted.forEach(function(e,i){
+    const t=e[1], gd=t.gf-t.ga;
+    const advance = i < 2 ? ' class="advance"' : '';
+    html += '<tr'+advance+'><td class="rank">'+(i+1)+'</td><td>'+e[0]+'</td><td>'+t.w+'</td><td>'+t.d+'</td><td>'+t.l+'</td><td>'+(gd>=0?'+':'')+gd+'</td><td class="pts">'+t.pts+'</td></tr>';
+  });
+  html += '</table></div>';
+  return html;
+}
+
+// ─── 렌더링 ───────────────────────────────────────────────
+function filter(val, el) {
+  curFilter = val;
+  document.querySelectorAll(".chip").forEach(function(c){ c.classList.remove("active"); });
+  el.classList.add("active");
+  render();
+}
+
+function render() {
+  const container = document.getElementById("list");
+  container.innerHTML = "";
+  const now = new Date();
+  let lastDate = null;
+
+  // 조별 필터일 때 순위표 먼저 표시
+  if (curFilter && curFilter.startsWith('그룹')) {
+    const tbl = document.createElement('div');
+    tbl.innerHTML = buildGroupTable(curFilter);
+    container.appendChild(tbl.firstChild);
+  }
+
+  const filtered = M.filter(function(m) {
+    if (curFilter === "upcoming") return parseKST(m.d, m.t) > now;
+    if (curFilter)                return m.g === curFilter;
+    return true;
+  });
+
+  filtered.forEach(function(m) {
+    const dt   = parseKST(m.d, m.t);
+    const past = dt < now;
+    const isLive = m.statusLabel && m.statusLabel !== 'FT';
+    const isKO = KO.includes(m.g);
+
+    const dateLabel = dt.toLocaleDateString("ko-KR", {month:"numeric", day:"numeric", weekday:"short"});
+    if (dateLabel !== lastDate) {
+      const hdr = document.createElement("div");
+      hdr.className = "date-header" + (isKO ? " knockout" : "");
+      hdr.textContent = (isKO ? "🏆 " : "📅 ") + dateLabel;
+      container.appendChild(hdr);
+      lastDate = dateLabel;
+    }
+
+    const timeStr = dt.toLocaleTimeString("ko-KR", {hour:"2-digit", minute:"2-digit"});
+    const title   = m.away ? m.home + " vs " + m.away : m.home;
+    const badgeClass = isKO ? "badge ko" : "badge group";
+
+    // 점수 박스
+    let scoreHtml = '';
+    if (m.score) {
+      const isLiveScore = isLive;
+      scoreHtml =
+        '<div class="score-box ' + (isLiveScore ? 'live-score' : 'ft') + '">' +
+          '<div class="score-num">' + m.score + '</div>' +
+          '<div class="score-label' + (isLiveScore ? ' live-label' : '') + '">' +
+            (isLiveScore ? '🔴 ' + m.statusLabel : 'FT') +
+          '</div>' +
+        '</div>';
+    }
+
+    const card = document.createElement("div");
+    card.className = "card" + (isLive ? " live" : past && !isLive ? " past" : "");
+    card.dataset.id = m.id;
+    card.innerHTML =
+      '<div class="card-top">' +
+        '<div class="teams">' + title + '</div>' +
+        (scoreHtml || (
+          '<div class="time-badge">' +
+            '<div class="time-big">' + timeStr + '</div>' +
+            '<div class="date-small">KST</div>' +
+          '</div>'
+        )) +
+      '</div>' +
+      '<div class="card-bottom">' +
+        '<span class="' + badgeClass + '">' + m.g + '</span>' +
+        '<span class="venue">📍 ' + m.v + '</span>' +
+        '<span class="countdown" id="cd-' + m.id + '"></span>' +
+      '</div>';
+    container.appendChild(card);
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#8b949e;font-size:13px">해당 경기 없음</div>';
+  }
+}
+
+function setSyncStatus(msg) {
+  const el = document.getElementById('sync-status');
+  if (el) el.textContent = msg;
+}
+
+function tick() {
+  const now = new Date();
+  document.getElementById("clock").textContent = now.toLocaleTimeString("ko-KR");
+  M.forEach(function(m) {
+    const el = document.getElementById("cd-" + m.id);
+    if (!el) return;
+    const dt  = parseKST(m.d, m.t);
+    const sec = (dt - now) / 1000;
+    if (sec <= 0) {
+      if (!m.score) { el.textContent = "종료"; el.className = "countdown done"; }
+      else el.textContent = "";
+      return;
+    }
+    const d = Math.floor(sec/86400), h = Math.floor((sec%86400)/3600),
+          mn = Math.floor((sec%3600)/60), s = Math.floor(sec%60);
+    const p = function(n){ return String(n).padStart(2,"0"); };
+    el.textContent = d > 0 ? "D-"+d+" "+p(h)+":"+p(mn) : p(h)+":"+p(mn)+":"+p(s);
+    el.className = "countdown" + (sec < 3600 ? " soon" : "");
+  });
+}
+
+// ─── 자동 새로고침 (5분마다) ──────────────────────────────
+render();
+setInterval(tick, 1000);
+tick();
+fetchScores(false);
+setInterval(function(){ fetchScores(false); }, 5 * 60 * 1000);
+</script>
+</body>
+</html>
