@@ -13,10 +13,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    max-width: 100%;
-    overflow-x: hidden;
-  }
+  html, body { max-width: 100%; overflow-x: hidden; }
   body {
     background: #060606;
     color: #e8e8e8;
@@ -32,16 +29,14 @@
     0%, 100% { opacity: 1; box-shadow: 0 0 8px #f7931a; }
     50% { opacity: 0.3; box-shadow: 0 0 2px #f7931a; }
   }
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
-  }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  @keyframes warn-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
 
   .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
   .pulse-dot {
     display: inline-block;
@@ -52,163 +47,92 @@
     animation: pulse 2s infinite;
     margin-right: 8px;
   }
-  .title-line {
-    display: flex;
-    align-items: center;
-    margin-bottom: 2px;
-  }
-  .title {
-    font-size: 12px;
-    color: #f7931a;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-  }
-  .subtitle {
-    font-size: 10px;
-    color: #333;
-    letter-spacing: 0.1em;
-  }
+  .title-line { display: flex; align-items: center; margin-bottom: 2px; }
+  .title { font-size: 12px; color: #f7931a; letter-spacing: 0.2em; text-transform: uppercase; }
+  .subtitle { font-size: 10px; color: #333; letter-spacing: 0.1em; }
   .refresh-btn {
-    background: none;
-    border: 1px solid #222;
-    color: #555;
-    font-size: 10px;
-    padding: 6px 12px;
-    cursor: pointer;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 0.1em;
+    background: none; border: 1px solid #222; color: #555;
+    font-size: 10px; padding: 6px 12px; cursor: pointer;
+    font-family: 'Courier New', monospace; letter-spacing: 0.1em;
     transition: border-color 0.2s, color 0.2s;
   }
   .refresh-btn:hover { border-color: #f7931a44; color: #f7931a; }
 
+  /* Alert panel */
+  .alert-panel { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; }
+  .alert-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 14px; border-radius: 2px;
+    font-size: 11px; font-family: monospace; line-height: 1.5;
+  }
+  .alert-item.red {
+    background: #1a0000; border: 1px solid #ff444455; color: #ff6b6b;
+    animation: warn-pulse 1.5s infinite;
+  }
+  .alert-item.yellow { background: #110e00; border: 1px solid #f7931a44; color: #f7c46b; }
+  .alert-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+  .alert-title { font-weight: 700; letter-spacing: 0.05em; }
+  .alert-desc { opacity: 0.7; font-size: 10px; }
+
   .grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    overflow: hidden;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; overflow: hidden;
   }
   .card {
-    background: #0d0d0d;
-    border: 1px solid #1a1a1a;
-    border-radius: 2px;
-    padding: 16px 20px;
-    overflow: hidden;
-    min-width: 0;
+    background: #0d0d0d; border: 1px solid #1a1a1a;
+    border-radius: 2px; padding: 16px 20px;
+    overflow: hidden; min-width: 0;
+    transition: border-color 0.3s;
   }
   .card.accent { border-color: #f7931a44; }
   .card.full { grid-column: 1 / -1; }
-  .card-label {
-    font-size: 10px;
-    color: #555;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-  .card-value {
-    font-size: 22px;
-    font-weight: 700;
-    color: #e8e8e8;
-    letter-spacing: -0.02em;
-  }
-  .card-value.orange { color: #f7931a; }
-  .card-sub {
-    font-size: 11px;
-    color: #444;
-    margin-top: 4px;
-  }
+  .card.warn-yellow { border-color: #f7931a88; }
+  .card.warn-red { border-color: #ff444466; animation: warn-pulse 1.5s infinite; }
 
-  /* Block Timer */
-  .timer-row {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 12px;
+  .card-label {
+    font-size: 10px; color: #555;
+    letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 6px;
   }
-  .timer-value {
-    font-size: 34px;
-    font-weight: 700;
-    color: #e8e8e8;
-    transition: color 0.3s;
-  }
-  .timer-value.over { color: #ff6b6b; }
+  .card-value { font-size: 22px; font-weight: 700; color: #e8e8e8; letter-spacing: -0.02em; }
+  .card-value.orange { color: #f7931a; }
+  .card-sub { font-size: 11px; color: #444; margin-top: 4px; }
+
+  .timer-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+  .timer-value { font-size: 34px; font-weight: 700; color: #e8e8e8; transition: color 0.3s; }
+  .timer-value.warn-yellow { color: #f7c46b; }
+  .timer-value.warn-red { color: #ff6b6b; }
   .timer-avg { font-size: 12px; color: #444; }
-  .progress-track {
-    height: 3px;
-    background: #1a1a1a;
-    border-radius: 1px;
-    margin-bottom: 6px;
-  }
+  .progress-track { height: 3px; background: #1a1a1a; border-radius: 1px; margin-bottom: 6px; }
   .progress-bar {
-    height: 100%;
-    border-radius: 1px;
-    background: #f7931a;
-    box-shadow: 0 0 6px #f7931a;
+    height: 100%; border-radius: 1px;
+    background: #f7931a; box-shadow: 0 0 6px #f7931a;
     transition: width 1s linear, background 0.3s;
   }
-  .progress-bar.over { background: #ff6b6b; box-shadow: 0 0 6px #ff6b6b; }
+  .progress-bar.warn-yellow { background: #f7c46b; box-shadow: 0 0 6px #f7c46b; }
+  .progress-bar.warn-red { background: #ff6b6b; box-shadow: 0 0 6px #ff6b6b; }
   .timer-note { font-size: 10px; color: #333; }
 
-  /* Mempool */
-  .mempool-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 16px;
-    margin-top: 10px;
-  }
+  .mempool-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 10px; }
   .mempool-label { font-size: 10px; color: #444; margin-bottom: 4px; }
   .mempool-value { font-size: 17px; color: #e8e8e8; font-weight: 600; }
 
-  /* Halving */
-  .halving-row {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
+  .halving-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
   .halving-value { font-size: 26px; font-weight: 700; color: #e8e8e8; }
   .halving-days { font-size: 13px; color: #555; }
-  .halving-bar {
-    height: 3px;
-    background: linear-gradient(90deg, #f7931a44, #f7931a);
-    border-radius: 1px;
-  }
+  .halving-bar { height: 3px; background: linear-gradient(90deg, #f7931a44, #f7931a); border-radius: 1px; }
   .halving-sub { font-size: 10px; color: #333; margin-top: 6px; }
 
-  /* Footer */
   .footer {
-    grid-column: 1 / -1;
-    border-top: 1px solid #111;
-    padding-top: 12px;
-    font-size: 9px;
-    color: #2a2a2a;
-    letter-spacing: 0.1em;
-    display: flex;
-    justify-content: space-between;
+    grid-column: 1 / -1; border-top: 1px solid #111; padding-top: 12px;
+    font-size: 9px; color: #2a2a2a; letter-spacing: 0.1em;
+    display: flex; justify-content: space-between;
   }
-
-  /* Loading */
-  .loading {
-    text-align: center;
-    color: #333;
-    font-size: 12px;
-    margin-top: 80px;
-  }
-  .loading-bar {
-    color: #f7931a;
-    font-size: 14px;
-    margin-top: 10px;
-    animation: blink 1s infinite;
-  }
-
+  .loading { text-align: center; color: #333; font-size: 12px; margin-top: 80px; }
+  .loading-bar { color: #f7931a; font-size: 14px; margin-top: 10px; animation: blink 1s infinite; }
   .error-box {
-    background: #1a0000;
-    border: 1px solid #ff444433;
-    padding: 12px 16px;
-    border-radius: 2px;
-    margin-bottom: 16px;
-    font-size: 12px;
-    color: #ff6b6b;
-    grid-column: 1 / -1;
+    background: #1a0000; border: 1px solid #ff444433;
+    padding: 12px 16px; border-radius: 2px; margin-bottom: 16px;
+    font-size: 12px; color: #ff6b6b; grid-column: 1 / -1;
   }
 </style>
 </head>
@@ -238,6 +162,102 @@ let blockTimerInterval = null;
 let autoRefreshInterval = null;
 let state = {};
 
+// ── 경고 임계값 ──────────────────────────────
+const THRESHOLDS = {
+  blockDelay:   { yellow: 20 * 60,  red: 30 * 60  },  // 초
+  mempoolCount: { yellow: 100000,   red: 300000   },   // 건
+  fastestFee:   { yellow: 150,      red: 300      },   // sat/vB
+  diffDrop:     { yellow: -10,      red: -20      },   // %
+  hashrateDrop: { yellow: -20,      red: -35      },   // % (7일 평균 대비)
+};
+
+// 해시레이트 7일 이동평균 저장
+let hashrateHistory = [];
+
+function classify(value, th) {
+  if (th.red !== undefined && (th.red < 0 ? value <= th.red : value >= th.red)) return "red";
+  if (th.yellow !== undefined && (th.yellow < 0 ? value <= th.yellow : value >= th.yellow)) return "yellow";
+  return "ok";
+}
+
+function buildAlerts(data, elapsedSec) {
+  const { mempool, diff, fees } = data;
+  const alerts = [];
+
+  // 1. 블록 지연
+  const blockLevel = classify(elapsedSec, THRESHOLDS.blockDelay);
+  if (blockLevel !== "ok") {
+    const m = Math.floor(elapsedSec / 60);
+    alerts.push({
+      level: blockLevel,
+      icon: blockLevel === "red" ? "🔴" : "🟡",
+      title: "블록 생성 지연",
+      desc: `${m}분째 블록이 없음 — 채굴 해시파워 이탈 또는 네트워크 이상 가능성`,
+      target: "block-timer-card",
+    });
+  }
+
+  // 2. 멤풀 과부하
+  if (mempool?.count) {
+    const level = classify(mempool.count, THRESHOLDS.mempoolCount);
+    if (level !== "ok") {
+      alerts.push({
+        level,
+        icon: level === "red" ? "🔴" : "🟡",
+        title: "멤풀 과부하",
+        desc: `미확인 TX ${mempool.count.toLocaleString()}건 — 처리 지연, 수수료 급등 예상`,
+        target: "mempool-card",
+      });
+    }
+  }
+
+  // 3. 수수료 급등
+  if (fees?.fastestFee) {
+    const level = classify(fees.fastestFee, THRESHOLDS.fastestFee);
+    if (level !== "ok") {
+      alerts.push({
+        level,
+        icon: level === "red" ? "🔴" : "🟡",
+        title: "수수료 급등",
+        desc: `최고 우선순위 ${fees.fastestFee} sat/vB — 네트워크 혼잡`,
+        target: "fee-card",
+      });
+    }
+  }
+
+  // 4. 난이도 급락
+  if (diff?.difficultyChange != null) {
+    const level = classify(diff.difficultyChange, THRESHOLDS.diffDrop);
+    if (level !== "ok") {
+      alerts.push({
+        level,
+        icon: level === "red" ? "🔴" : "🟡",
+        title: "난이도 급락",
+        desc: `${diff.difficultyChange.toFixed(2)}% 하락 — 대규모 채굴자 이탈 신호`,
+        target: "diff-card",
+      });
+    }
+  }
+
+  // 5. 해시레이트 이상 (7일 이동평균 대비)
+  if (diff?.currentHashrate && hashrateHistory.length >= 3) {
+    const avg = hashrateHistory.reduce((a, b) => a + b, 0) / hashrateHistory.length;
+    const drop = ((diff.currentHashrate - avg) / avg) * 100;
+    const level = classify(drop, THRESHOLDS.hashrateDrop);
+    if (level !== "ok") {
+      alerts.push({
+        level,
+        icon: level === "red" ? "🔴" : "🟡",
+        title: "해시레이트 이상",
+        desc: `${drop.toFixed(1)}% 하락 (최근 평균 대비) — 채굴 셧다운 가능성`,
+        target: "hashrate-card",
+      });
+    }
+  }
+
+  return alerts;
+}
+
 async function fetchAll() {
   try {
     const [heightRes, mempoolRes, diffRes, feesRes] = await Promise.all([
@@ -257,37 +277,38 @@ async function fetchAll() {
     const blockRes = await fetch(`${API}/block/${hash}`);
     const block = await blockRes.json();
 
+    // 해시레이트 히스토리 누적 (최대 48개 = 48시간)
+    if (diff?.currentHashrate) {
+      hashrateHistory.push(diff.currentHashrate);
+      if (hashrateHistory.length > 48) hashrateHistory.shift();
+    }
+
     state = { height, mempool, diff, fees, lastBlockTime: block.timestamp };
 
     document.getElementById("loading").style.display = "none";
     document.getElementById("grid").style.display = "grid";
-
-    const now = new Date();
     document.getElementById("last-updated").textContent =
-      `업데이트 ${now.toLocaleTimeString("ko-KR")}`;
+      `업데이트 ${new Date().toLocaleTimeString("ko-KR")}`;
 
     render();
   } catch (e) {
     document.getElementById("loading").style.display = "none";
     document.getElementById("grid").style.display = "grid";
-    renderError("mempool.space API 연결 실패 — " + e.message);
+    document.getElementById("grid").innerHTML =
+      `<div class="error-box">API 연결 실패 — ${e.message}</div>`;
   }
 }
 
 function render() {
   const { height, mempool, diff, fees, lastBlockTime } = state;
+  const elapsedNow = Math.floor(Date.now() / 1000) - lastBlockTime;
 
   const hashrate = diff?.currentHashrate
-    ? (diff.currentHashrate / 1e18).toFixed(2) + " EH/s"
-    : "—";
-
+    ? (diff.currentHashrate / 1e18).toFixed(2) + " EH/s" : "—";
   const diffChange = diff?.difficultyChange != null
-    ? (diff.difficultyChange > 0 ? "+" : "") + diff.difficultyChange.toFixed(2) + "%"
-    : "—";
-
+    ? (diff.difficultyChange > 0 ? "+" : "") + diff.difficultyChange.toFixed(2) + "%" : "—";
   const nextDiffBlocks = diff?.remainingBlocks ?? "—";
 
-  // Next halving
   const halvings = [210000, 420000, 630000, 840000, 1050000, 1260000];
   const nextHalving = halvings.find(h => h > height) ?? 1260000;
   const blocksLeft = nextHalving - height;
@@ -300,8 +321,36 @@ function render() {
   const mempoolSize = mempool?.vsize ? (mempool.vsize / 1e6).toFixed(2) + " MB" : "—";
   const mempoolFee = mempool?.total_fee ? (mempool.total_fee / 1e8).toFixed(4) + " BTC" : "—";
 
+  const alerts = buildAlerts(state, elapsedNow);
+
+  // 카드별 경고 레벨 매핑
+  const cardWarn = {};
+  alerts.forEach(a => { cardWarn[a.target] = a.level; });
+
+  const warnClass = (id) => cardWarn[id] ? ` warn-${cardWarn[id]}` : "";
+
+  // 경고 패널 HTML
+  const alertHTML = alerts.length ? `
+    <div class="alert-panel">
+      ${alerts.map(a => `
+        <div class="alert-item ${a.level}">
+          <span class="alert-icon">${a.icon}</span>
+          <div class="alert-text">
+            <div class="alert-title">${a.title}</div>
+            <div class="alert-desc">${a.desc}</div>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  ` : "";
+
+  const diffColor = diff?.difficultyChange > 0 ? "#4ade80"
+    : diff?.difficultyChange < -10 ? "#ff6b6b" : "#f87171";
+
   document.getElementById("grid").innerHTML = `
-    <div class="card full" id="block-timer-card">
+    ${alertHTML}
+
+    <div class="card full${warnClass("block-timer-card")}" id="block-timer-card">
       <div class="card-label">마지막 블록 이후 경과 시간</div>
       <div class="timer-row">
         <div class="timer-value" id="timer-val">0m 00s</div>
@@ -319,25 +368,25 @@ function render() {
       <div class="card-sub">제네시스로부터</div>
     </div>
 
-    <div class="card">
+    <div class="card${warnClass("fee-card")}" id="fee-card">
       <div class="card-label">권장 수수료</div>
       <div class="card-value">${fees?.fastestFee ?? "—"} <span style="font-size:13px;color:#666">sat/vB</span></div>
       <div class="card-sub">보통 ${fees?.halfHourFee ?? "—"} · 느림 ${fees?.hourFee ?? "—"}</div>
     </div>
 
-    <div class="card">
+    <div class="card${warnClass("hashrate-card")}" id="hashrate-card">
       <div class="card-label">네트워크 해시레이트</div>
       <div class="card-value" style="font-size:18px">${hashrate}</div>
       <div class="card-sub">채굴 파워</div>
     </div>
 
-    <div class="card">
+    <div class="card${warnClass("diff-card")}" id="diff-card">
       <div class="card-label">난이도 조정</div>
-      <div class="card-value" style="color:${diff?.difficultyChange > 0 ? '#4ade80' : '#f87171'}">${diffChange}</div>
+      <div class="card-value" style="color:${diffColor}">${diffChange}</div>
       <div class="card-sub">${nextDiffBlocks} 블록 후</div>
     </div>
 
-    <div class="card full">
+    <div class="card full${warnClass("mempool-card")}" id="mempool-card">
       <div class="card-label">멤풀 상태</div>
       <div class="mempool-grid">
         <div>
@@ -373,14 +422,10 @@ function render() {
     </div>
   `;
 
-  startBlockTimer(lastBlockTime);
+  startBlockTimer(lastBlockTime, cardWarn["block-timer-card"]);
 }
 
-function renderError(msg) {
-  document.getElementById("grid").innerHTML = `<div class="error-box">${msg}</div>`;
-}
-
-function startBlockTimer(lastBlockTime) {
+function startBlockTimer(lastBlockTime, initWarnLevel) {
   if (blockTimerInterval) clearInterval(blockTimerInterval);
 
   blockTimerInterval = setInterval(() => {
@@ -388,34 +433,40 @@ function startBlockTimer(lastBlockTime) {
     const m = Math.floor(elapsed / 60);
     const s = elapsed % 60;
     const pct = Math.min((elapsed / 600) * 100, 100);
-    const over = elapsed > 600;
+
+    const level = elapsed >= THRESHOLDS.blockDelay.red ? "red"
+      : elapsed >= THRESHOLDS.blockDelay.yellow ? "yellow" : "ok";
 
     const timerEl = document.getElementById("timer-val");
-    const barEl = document.getElementById("progress-bar");
-    const noteEl = document.getElementById("timer-note");
+    const barEl   = document.getElementById("progress-bar");
+    const noteEl  = document.getElementById("timer-note");
+    const cardEl  = document.getElementById("block-timer-card");
 
     if (timerEl) {
       timerEl.textContent = `${m}m ${String(s).padStart(2, "0")}s`;
-      timerEl.className = "timer-value" + (over ? " over" : "");
+      timerEl.className = `timer-value${level !== "ok" ? " warn-" + level : ""}`;
     }
     if (barEl) {
       barEl.style.width = pct + "%";
-      barEl.className = "progress-bar" + (over ? " over" : "");
+      barEl.className = `progress-bar${level !== "ok" ? " warn-" + level : ""}`;
     }
     if (noteEl) {
-      noteEl.textContent = over
-        ? `⚠ ${m - 10}m 지연 중`
-        : `예상 잔여: ~${Math.max(0, 10 - m)}m`;
+      if (level === "red")         noteEl.textContent = `🔴 ${m}분 지연 — 블록 이상 가능성`;
+      else if (level === "yellow") noteEl.textContent = `🟡 ${m}분 경과 — 주의`;
+      else                         noteEl.textContent = `예상 잔여: ~${Math.max(0, 10 - m)}m`;
+    }
+    if (cardEl) {
+      cardEl.className = `card full${level !== "ok" ? " warn-" + level : ""}`;
     }
   }, 1000);
 }
 
-// Service Worker 등록
+// Service Worker
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js").catch(console.warn);
 }
 
-// 온/오프라인 감지
+// 오프라인 배너
 const offlineBanner = document.createElement("div");
 offlineBanner.style.cssText = `
   display:none; position:fixed; top:0; left:0; right:0;
@@ -427,9 +478,8 @@ offlineBanner.textContent = "⚠ 오프라인 — 마지막 캐시 데이터 표
 document.body.prepend(offlineBanner);
 
 window.addEventListener("offline", () => offlineBanner.style.display = "block");
-window.addEventListener("online", () => { offlineBanner.style.display = "none"; fetchAll(); });
+window.addEventListener("online",  () => { offlineBanner.style.display = "none"; fetchAll(); });
 
-// Init
 fetchAll();
 autoRefreshInterval = setInterval(fetchAll, 60000);
 </script>
