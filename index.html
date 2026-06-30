@@ -240,9 +240,10 @@ function buildAlerts(data, elapsedSec) {
   }
 
   // 5. 해시레이트 이상 (7일 이동평균 대비)
-  if (diff?.currentHashrate && hashrateHistory.length >= 3) {
+  const chr = data.currentHashrate;
+  if (chr && hashrateHistory.length >= 3) {
     const avg = hashrateHistory.reduce((a, b) => a + b, 0) / hashrateHistory.length;
-    const drop = ((diff.currentHashrate - avg) / avg) * 100;
+    const drop = ((chr - avg) / avg) * 100;
     const level = classify(drop, THRESHOLDS.hashrateDrop);
     if (level !== "ok") {
       alerts.push({
@@ -260,10 +261,11 @@ function buildAlerts(data, elapsedSec) {
 
 async function fetchAll() {
   try {
-    const [heightRes, mempoolRes, diffRes, feesRes] = await Promise.all([
+    const [heightRes, mempoolRes, diffRes, feesRes, hashrateRes] = await Promise.all([
       fetch(`${API}/blocks/tip/height`),
       fetch(`${API}/mempool`),
       fetch(`${API}/v1/difficulty-adjustment`),
+      fetch(`${API}/v1/mining/hashrate/3d`),
       fetch(`${API}/v1/fees/recommended`),
     ]);
 
@@ -271,6 +273,8 @@ async function fetchAll() {
     const mempool = await mempoolRes.json();
     const diff = await diffRes.json();
     const fees = await feesRes.json();
+    const hashrateData = await hashrateRes.json();
+    const currentHashrate = hashrateData?.currentHashrate ?? null;
 
     const hashRes = await fetch(`${API}/blocks/tip/hash`);
     const hash = (await hashRes.text()).trim();
@@ -278,12 +282,12 @@ async function fetchAll() {
     const block = await blockRes.json();
 
     // 해시레이트 히스토리 누적 (최대 48개 = 48시간)
-    if (diff?.currentHashrate) {
-      hashrateHistory.push(diff.currentHashrate);
+    if (currentHashrate) {
+      hashrateHistory.push(currentHashrate);
       if (hashrateHistory.length > 48) hashrateHistory.shift();
     }
 
-    state = { height, mempool, diff, fees, lastBlockTime: block.timestamp };
+    state = { height, mempool, diff, fees, lastBlockTime: block.timestamp, currentHashrate };
 
     document.getElementById("loading").style.display = "none";
     document.getElementById("grid").style.display = "grid";
@@ -300,11 +304,11 @@ async function fetchAll() {
 }
 
 function render() {
-  const { height, mempool, diff, fees, lastBlockTime } = state;
+  const { height, mempool, diff, fees, lastBlockTime, currentHashrate } = state;
   const elapsedNow = Math.floor(Date.now() / 1000) - lastBlockTime;
 
-  const hashrate = diff?.currentHashrate
-    ? (diff.currentHashrate / 1e18).toFixed(2) + " EH/s" : "—";
+  const hashrate = currentHashrate
+    ? (currentHashrate / 1e18).toFixed(2) + " EH/s" : "—";
   const diffChange = diff?.difficultyChange != null
     ? (diff.difficultyChange > 0 ? "+" : "") + diff.difficultyChange.toFixed(2) + "%" : "—";
   const nextDiffBlocks = diff?.remainingBlocks ?? "—";
